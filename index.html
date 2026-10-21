@@ -13,56 +13,44 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   :root{
-    --blue:#1565C0;--blue-pale:#E3F2FD;--red:#E53935;
-    --ink:#1A1A2E;--muted:#6B7280;--line:#E5E7EB;--gray-100:#F5F5F5;--gray-300:#E0E0E0;--gray-500:#9E9E9E;
-    --glass:rgba(20,20,20,.45);
-    --nav-height:68px;
+    --glass:rgba(20,20,20,.5);
+    --red:#E53935;
     --safe-t:env(safe-area-inset-top,0px);
     --safe-b:env(safe-area-inset-bottom,0px);
   }
-  html,body{height:100%;overflow:hidden;background:#fff;color:var(--ink);overscroll-behavior:none;
+  html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-behavior:none;
     font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif}
-  #app{height:100vh;height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;background:#fff;position:relative;overflow:hidden}
 
-  /* Screens and nav (same shell as Palab) */
-  .screen{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;position:relative}
-  .screen.active{display:flex}
-  .bottom-nav{display:flex;background:#fff;border-top:1px solid var(--line);flex-shrink:0;height:var(--nav-height);padding-bottom:var(--safe-b)}
-  .bottom-nav.hidden{display:none}
-  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--gray-500);cursor:pointer;font-size:10px;font-weight:500}
-  .nav-item.active{color:var(--blue)}
-  .nav-item svg{width:22px;height:22px}
+  #app{position:fixed;inset:0;background:#000;overflow:hidden}
 
-  /* ---------- Record screen (camera) ---------- */
-  #record{background:#000;color:#fff}
-  .stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#000}
-  #cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);background:#000}
-  #prompt{position:absolute;left:0;right:0;top:calc(var(--safe-t) + 74px);height:32%;overflow:hidden;z-index:2;pointer-events:none;
-    -webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent)}
+  /* What you see is what gets recorded: the canvas is the recorded frame. */
+  #view{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+  /* Hidden source for the camera feed */
+  #src{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  /* Teleprompter text is on screen only. It is not drawn into the recording. */
+  #prompt{position:absolute;left:0;right:0;top:calc(var(--safe-t) + 70px);height:34%;overflow:hidden;z-index:2;pointer-events:none;
+    -webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);
+            mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent)}
   #scroll{position:absolute;top:0;left:0;right:0;padding:0 8vw;font-size:clamp(22px,6.4vw,30px);line-height:1.38;font-weight:700;
     text-align:center;white-space:pre-wrap;text-shadow:0 2px 8px rgba(0,0,0,.85);will-change:transform}
 
-  .topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:calc(var(--safe-t) + 12px) 14px 0;z-index:4;pointer-events:none}
-  .pill{background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:9px 14px;font-size:14px;font-weight:600}
-  #scriptPill{max-width:58%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #timer{display:flex;align-items:center;gap:8px;min-width:86px;justify-content:center;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+  .top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:calc(var(--safe-t) + 12px) 14px 0;z-index:4}
+  .pill{height:44px;border:0;border-radius:999px;background:var(--glass);color:#fff;padding:0 16px;font-size:15px;font-weight:700;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  #timer{min-width:86px;justify-content:center;font-variant-numeric:tabular-nums;pointer-events:none}
   #dot{width:9px;height:9px;border-radius:50%;background:var(--red);opacity:0}
   #timer.live #dot{opacity:1;animation:blink 1s steps(2) infinite}
   @keyframes blink{50%{opacity:.2}}
 
-  .tools{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;z-index:4}
-  .glass{width:46px;height:46px;border-radius:50%;border:0;background:var(--glass);color:#fff;display:grid;place-items:center;
+  .bottom{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;align-items:center;
+    padding:0 0 calc(var(--safe-b) + 24px);background:linear-gradient(transparent,rgba(0,0,0,.6))}
+  .row{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 34px}
+  .round{width:52px;height:52px;border-radius:50%;border:0;background:var(--glass);color:#fff;display:grid;place-items:center;
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;padding:0}
-  .glass svg{width:22px;height:22px}
-  #speedLabel{position:absolute;right:66px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:13px;font-weight:700;
-    background:var(--glass);padding:6px 10px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
-  #speedLabel.show{opacity:1}
+  .round svg{width:22px;height:22px}
 
-  .bottom{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;align-items:center;gap:12px;
-    padding:0 0 22px;background:linear-gradient(transparent,rgba(0,0,0,.6))}
-  #hint{font-size:13px;font-weight:600;color:rgba(255,255,255,.75);min-height:16px}
-  .shutter-row{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 34px}
   #shutter{position:relative;width:84px;height:84px;border:0;padding:0;background:transparent;cursor:pointer}
   #ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
   #ring circle{fill:none;stroke-width:5}
@@ -71,223 +59,132 @@
   #core{position:absolute;inset:12px;border-radius:50%;background:#fff;transition:all .22s cubic-bezier(.3,.7,.4,1)}
   #shutter.live #core{inset:27px;border-radius:9px;background:var(--red)}
 
+  /* Sheets */
   .sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:#141414;border-radius:22px 22px 0 0;
     padding:12px 18px calc(var(--safe-b) + 18px);transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
   .sheet.open{transform:translateY(0)}
   .grip{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.3);margin:0 auto 14px}
   .sheet h2{font-size:17px;font-weight:700;margin-bottom:12px}
-  .speeds{display:flex;gap:10px}
-  .speeds button{flex:1;height:52px;border:0;border-radius:14px;background:#262626;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
-  .speeds button.on{background:#fff;color:#000}
-  .done-btn{margin-top:12px;width:100%;height:50px;border:0;border-radius:14px;background:#fff;color:#000;font-size:16px;font-weight:700;cursor:pointer}
+  #scriptInput{width:100%;height:42vh;background:#262626;color:#fff;border:0;border-radius:14px;padding:14px;
+    font:600 17px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;resize:none;outline:none}
+  .sheet-row{display:flex;gap:10px;margin-top:12px}
+  .btn{flex:1;height:50px;border:0;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer}
+  .btn-light{background:#fff;color:#000}
+  .btn-dark{background:#262626;color:#fff}
+  #speedValue{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;margin:4px 0 14px}
+  #speed{width:100%;height:44px;accent-color:#fff}
+  .slow-fast{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.6);margin-top:6px}
 
   /* Review after recording */
   #review{position:absolute;inset:0;z-index:8;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
   #review.show{display:flex}
-  #review video{width:min(74vw,320px);aspect-ratio:9/16;object-fit:contain;border-radius:16px;background:#111}
+  #preview{width:min(74vw,320px);aspect-ratio:9/16;object-fit:contain;border-radius:16px;background:#111}
   #reviewMsg{font-size:14px;color:rgba(255,255,255,.7);min-height:20px}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;min-width:220px;padding:0 22px;border-radius:12px;font-size:16px;font-weight:600;border:none;cursor:pointer}
-  .btn-primary{background:var(--blue);color:#fff}
-  .btn-secondary{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.5)}
-  .btn-danger{background:#FFEBEE;color:#C62828;border:1.5px solid #C62828}
-  .btn-full{width:100%}
-
-  /* ---------- Scripts screen ---------- */
-  .header{padding:calc(var(--safe-t) + 14px) 20px 12px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0}
-  .header-top{display:flex;align-items:center;justify-content:space-between}
-  .header-date{font-size:13px;color:var(--muted);margin-bottom:2px}
-  .header-title{font-size:26px;font-weight:700;letter-spacing:-.5px}
-  .header-action{width:36px;height:36px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--blue)}
-  .header-simple{padding:calc(var(--safe-t) + 12px) 16px 12px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;display:flex;align-items:center;gap:10px}
-  .back-btn{width:36px;height:36px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--blue);flex-shrink:0}
-  .screen-title{font-size:18px;font-weight:600;flex:1;text-align:center}
-  .btn-sm{height:36px;min-width:0;padding:0 14px;font-size:14px;border-radius:8px}
-
-  .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px}
-  .list-item{display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid var(--gray-100);gap:12px;cursor:pointer}
-  .list-item:active{background:#FAFAFA}
-  .item-avatar{width:40px;height:40px;border-radius:50%;background:var(--blue-pale);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--blue);flex-shrink:0}
-  .item-info{flex:1;min-width:0}
-  .item-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
-  .item-sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--blue-pale);color:var(--blue);flex-shrink:0}
-  .edit-btn{width:36px;height:36px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0}
-  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 28px;text-align:center;color:var(--muted)}
-  .empty h3{font-size:16px;font-weight:600;color:#424242;margin-bottom:6px}
-  .empty p{font-size:13px;line-height:1.5}
-  .footnote{font-size:11px;color:var(--gray-500);text-align:center;padding:14px 20px 4px}
-
-  /* ---------- Editor screen ---------- */
-  .form{padding:20px}
-  .form-group{margin-bottom:16px}
-  .form-label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
-  .form-input{width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font:16px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:#fff;outline:none;-webkit-appearance:none}
-  .form-input:focus{border-color:var(--blue)}
-  textarea.form-input{min-height:300px;resize:vertical;line-height:1.45}
+  .big{height:52px;min-width:220px;padding:0 22px;border-radius:12px;font-size:16px;font-weight:700;border:none;cursor:pointer}
+  .big-light{background:#fff;color:#000}
+  .big-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.5)}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- RECORD -->
-  <section class="screen active" id="record">
-    <div class="stage">
-      <video id="cam" autoplay playsinline muted></video>
-      <div id="prompt"><div id="scroll"></div></div>
+  <canvas id="view" width="720" height="1280"></canvas>
+  <video id="src" autoplay playsinline muted></video>
 
-      <div class="topbar">
-        <div class="pill" id="scriptPill">No script</div>
-        <div class="pill" id="timer"><span id="dot"></span><span id="time">0:00</span></div>
-      </div>
+  <div id="prompt"><div id="scroll"></div></div>
 
-      <div class="tools">
-        <button class="glass" id="speedBtn" aria-label="Scroll speed">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 16a8 8 0 1116 0M12 16l4-4"/></svg>
-        </button>
-      </div>
-      <div id="speedLabel"></div>
+  <div class="top">
+    <button class="pill" id="scriptBtn" aria-label="Add or edit script">+ Script</button>
+    <div class="pill" id="timer"><span id="dot"></span><span id="time">0:00</span></div>
+    <button class="pill" id="speedBtn" aria-label="Scroll speed">Speed <span id="speedNow">50</span></button>
+  </div>
 
-      <div class="bottom">
-        <div id="hint">Tap the red button to record</div>
-        <div class="shutter-row">
-          <button class="glass" id="resetBtn" aria-label="Restart script">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 108-8M4 4v4h4"/></svg>
-          </button>
-          <button id="shutter" aria-label="Record">
-            <svg id="ring" viewBox="0 0 84 84">
-              <circle class="track" cx="42" cy="42" r="38"/>
-              <circle class="prog" id="prog" cx="42" cy="42" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
-            </svg>
-            <span id="core"></span>
-          </button>
-          <button class="glass" id="playBtn" aria-label="Play script">
-            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="sheet" id="speedSheet">
-        <div class="grip"></div>
-        <h2>Scroll speed</h2>
-        <div class="speeds">
-          <button data-speed="slow">Slow</button>
-          <button data-speed="medium">Medium</button>
-          <button data-speed="fast">Fast</button>
-        </div>
-        <button class="done-btn" id="speedDone">Done</button>
-      </div>
-    </div>
-
-    <div id="review">
-      <video id="preview" playsinline controls></video>
-      <div id="reviewMsg"></div>
-      <button class="btn btn-primary" id="saveBtn">Save video</button>
-      <button class="btn btn-secondary" id="retakeBtn">Retake</button>
-    </div>
-  </section>
-
-  <!-- SCRIPTS -->
-  <section class="screen" id="scripts">
-    <header class="header">
-      <div class="header-top">
-        <div>
-          <div class="header-date" id="scriptCount"></div>
-          <div class="header-title">Scripts</div>
-        </div>
-        <button class="header-action" id="newScript" aria-label="New script">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
-    </header>
-    <div class="scroll-area" id="scriptList"></div>
-    <div class="footnote" id="camInfo"></div>
-  </section>
-
-  <!-- EDITOR -->
-  <section class="screen" id="editor">
-    <header class="header-simple">
-      <button class="back-btn" id="editBack" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+  <div class="bottom">
+    <div class="row">
+      <button class="round" id="resetBtn" aria-label="Restart script">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 108-8M4 4v4h4"/></svg>
       </button>
-      <div class="screen-title" id="editTitle">New script</div>
-      <button class="btn btn-primary btn-sm" id="editSave">Save</button>
-    </header>
-    <div class="scroll-area">
-      <div class="form">
-        <div class="form-group">
-          <label class="form-label" for="scriptName">Name</label>
-          <input class="form-input" id="scriptName" maxlength="40" placeholder="For example: Intro">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="scriptText">Script</label>
-          <textarea class="form-input" id="scriptText" placeholder="Paste or type your script"></textarea>
-        </div>
-        <button class="btn btn-danger btn-full" id="editDelete">Delete script</button>
-      </div>
+      <button id="shutter" aria-label="Record">
+        <svg id="ring" viewBox="0 0 84 84">
+          <circle class="track" cx="42" cy="42" r="38"/>
+          <circle class="prog" id="prog" cx="42" cy="42" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+        </svg>
+        <span id="core"></span>
+      </button>
+      <button class="round" id="playBtn" aria-label="Play script">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
     </div>
-  </section>
+  </div>
 
-  <nav class="bottom-nav" id="nav">
-    <button class="nav-item active" data-tab="record">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
-      <span>Record</span>
-    </button>
-    <button class="nav-item" data-tab="scripts">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4h12v16H6zM9 9h6M9 13h6M9 17h3"/></svg>
-      <span>Scripts</span>
-    </button>
-  </nav>
+  <div class="sheet" id="scriptSheet">
+    <div class="grip"></div>
+    <h2>Script</h2>
+    <textarea id="scriptInput" placeholder="Type or paste your script"></textarea>
+    <div class="sheet-row">
+      <button class="btn btn-dark" id="scriptClear">Clear</button>
+      <button class="btn btn-light" id="scriptDone">Done</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="speedSheet">
+    <div class="grip"></div>
+    <h2>Scroll speed</h2>
+    <div id="speedValue"><span id="speedBig">50</span> px per second</div>
+    <input id="speed" type="range" min="10" max="120" step="1" value="50" aria-label="Scroll speed">
+    <div class="slow-fast"><span>Slower</span><span>Faster</span></div>
+    <div class="sheet-row">
+      <button class="btn btn-light" id="speedDone">Done</button>
+    </div>
+  </div>
+
+  <div id="review">
+    <video id="preview" playsinline controls></video>
+    <div id="reviewMsg"></div>
+    <button class="big big-light" id="saveBtn">Save video</button>
+    <button class="big big-ghost" id="retakeBtn">Retake</button>
+  </div>
 
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 
-const KEY_SCRIPTS = 'teleprompter.scripts';
-const KEY_ACTIVE = 'teleprompter.active';
 const MAX_SECONDS = 60;
 const CIRC = 2 * Math.PI * 38;
-const SPEEDS = { slow: 30, medium: 50, fast: 80 };
+const W = 720, H = 1280;            // recorded frame: portrait 9:16
+const ROTATE_DIR = 1;               // 1 = rotate clockwise. If the picture is upside down, change to -1.
 
-let scripts = load(KEY_SCRIPTS, null);
-if (!scripts) {
-  scripts = [{ id: 'sample', name: 'Sample', text: 'This is a sample script. Look at the lens while you read, and let the words move past the top of the screen.' }];
-  store(KEY_SCRIPTS, scripts);
-}
-let activeId = load(KEY_ACTIVE, null);
+const view = $('view'), ctx = view.getContext('2d'), src = $('src');
 
-let stream = null, recorder = null, chunks = [], blob = null, ext = 'webm', mime = '';
+let stream = null, running = false;
+let scriptText = '', speedVal = 50;
+let recorder = null, chunks = [], blob = null, ext = 'webm', mime = '', previewURL = null;
 let startT = 0, tickId = null, promptY = 0, promptRunning = false, lastTs = 0;
-let speedName = 'medium', speedVal = SPEEDS.medium;
-let editingId = null, previewURL = null;
 
-/* ---------- storage (wrapped: private mode can throw) ---------- */
-function load(k, fallback) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fallback; } catch (e) { return fallback; } }
-function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-
-function activeScript() { return scripts.find(s => s.id === activeId) || null; }
-
-/* ---------- screens ---------- */
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === name));
-  $('nav').classList.toggle('hidden', name === 'editor');
-  const tab = name === 'editor' ? 'scripts' : name;
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  if (name === 'record') { startCam(); setPromptText(); }
-  else stopCam();
-  if (name === 'scripts') renderScripts();
+/* ---------- Camera frame -> portrait canvas ---------- */
+function drawFrame() {
+  if (!running) return;
+  if (src.readyState >= 2 && src.videoWidth) {
+    const vw = src.videoWidth, vh = src.videoHeight;
+    const rotate = vw > vh;                       // landscape sensor on a portrait phone
+    const ew = rotate ? vh : vw, eh = rotate ? vw : vh;
+    const s = Math.max(W / ew, H / eh);           // fill the portrait frame, no empty edges
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    if (rotate) ctx.rotate(ROTATE_DIR * Math.PI / 2);
+    ctx.scale(s, s);
+    ctx.drawImage(src, -vw / 2, -vh / 2, vw, vh);
+    ctx.restore();
+  }
+  requestAnimationFrame(drawFrame);
 }
 
-document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => {
-  if (recorder && recorder.state === 'recording') return;
-  showScreen(b.dataset.tab);
-});
-
-/* ---------- camera ---------- */
 async function startCam() {
   if (stream) return;
   const attempts = [
-    { video: { facingMode: 'user', aspectRatio: { ideal: 9 / 16 } }, audio: true },
     { video: { facingMode: 'user' }, audio: true },
     { video: { facingMode: 'user' }, audio: false }
   ];
@@ -300,33 +197,17 @@ async function startCam() {
     showError('Camera is blocked. Allow camera and microphone for this site in your browser settings, then reopen the app. (' + (lastErr ? lastErr.name : 'unknown') + ')');
     return;
   }
-  $('cam').srcObject = stream;
-  try { await $('cam').play(); } catch (e) {}
-  fitVideo();
-}
-
-function stopCam() {
-  if (!stream) return;
-  stream.getTracks().forEach(t => t.stop());
-  stream = null;
-  $('cam').srcObject = null;
-}
-
-// Fill the screen only when the camera sends a portrait image.
-// A landscape image cropped to portrait is what made the picture look zoomed in.
-function fitVideo() {
-  const track = stream && stream.getVideoTracks()[0];
-  if (!track) return;
-  const s = track.getSettings();
-  $('cam').style.objectFit = (s.height >= s.width) ? 'cover' : 'contain';
-  $('camInfo').textContent = 'Camera feed: ' + (s.width || '?') + ' x ' + (s.height || '?') + ' px';
+  src.srcObject = stream;
+  try { await src.play(); } catch (e) {}
+  running = true;
+  requestAnimationFrame(drawFrame);
 }
 
 function showError(msg) {
   $('reviewMsg').textContent = msg;
-  $('review').classList.add('show');
   $('saveBtn').style.display = 'none';
   $('retakeBtn').textContent = 'OK';
+  $('review').classList.add('show');
 }
 
 function pickType() {
@@ -336,11 +217,9 @@ function pickType() {
   return '';
 }
 
-/* ---------- teleprompter ---------- */
+/* ---------- Teleprompter (on screen only) ---------- */
 function setPromptText() {
-  const s = activeScript();
-  $('scroll').textContent = s ? s.text : 'No script selected. Open Scripts and tap one.';
-  $('scriptPill').textContent = s ? s.name : 'No script';
+  $('scroll').textContent = scriptText || 'Tap + Script to add your text.';
   resetPrompt();
 }
 function resetPrompt() {
@@ -367,7 +246,7 @@ function stopPrompt() {
   $('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
 }
 
-/* ---------- recording ---------- */
+/* ---------- Recording ---------- */
 function tick() {
   const secs = (performance.now() - startT) / 1000;
   const s = Math.floor(secs);
@@ -377,20 +256,22 @@ function tick() {
 }
 
 function startRec() {
-  if (!stream || !window.MediaRecorder) {
-    showError('Recording is not supported in this browser. Use Safari on iPhone or Chrome on Android.');
+  if (!running || !window.MediaRecorder || !view.captureStream) {
+    showError('Recording is not supported in this browser. Use Safari on iPhone.');
     return;
   }
+  // Record the portrait canvas, plus the microphone audio.
+  const out = view.captureStream(30);
+  stream.getAudioTracks().forEach(t => out.addTrack(t));
   mime = pickType();
   chunks = [];
-  recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  recorder = new MediaRecorder(out, mime ? { mimeType: mime } : undefined);
   recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   recorder.onstop = onStopped;
   recorder.start(1000);
 
   $('shutter').classList.add('live');
   $('timer').classList.add('live');
-  $('hint').textContent = 'Tap to stop';
   startT = performance.now();
   tickId = setInterval(tick, 200);
   resetPrompt();
@@ -402,7 +283,6 @@ function stopRec() {
   clearInterval(tickId);
   $('shutter').classList.remove('live');
   $('timer').classList.remove('live');
-  $('hint').textContent = 'Tap the red button to record';
   stopPrompt();
 }
 
@@ -444,114 +324,44 @@ function closeReview() {
   resetPrompt();
 }
 
-/* ---------- speed ---------- */
-function setSpeed(name) {
-  speedName = name;
-  speedVal = SPEEDS[name];
-  document.querySelectorAll('.speeds button').forEach(b => b.classList.toggle('on', b.dataset.speed === name));
-  const label = name[0].toUpperCase() + name.slice(1);
-  $('speedLabel').textContent = label;
-  $('speedLabel').classList.add('show');
-  clearTimeout(setSpeed.t);
-  setSpeed.t = setTimeout(() => $('speedLabel').classList.remove('show'), 1200);
-}
+/* ---------- Sheets ---------- */
+function openSheet(id) { $(id).classList.add('open'); }
+function closeSheets() { document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open')); }
 
-/* ---------- scripts list ---------- */
-function renderScripts() {
-  const list = $('scriptList');
-  $('scriptCount').textContent = scripts.length + (scripts.length === 1 ? ' script' : ' scripts');
-  list.textContent = '';
-  if (!scripts.length) {
-    list.innerHTML = '<div class="empty"><h3>No scripts yet</h3><p>Tap + to add a script. Then tap it to put it on the camera.</p></div>';
-    return;
-  }
-  scripts.forEach(s => {
-    const row = document.createElement('div');
-    row.className = 'list-item';
+$('scriptBtn').onclick = () => {
+  $('scriptInput').value = scriptText;
+  openSheet('scriptSheet');
+};
+$('scriptDone').onclick = () => {
+  scriptText = $('scriptInput').value.trim();
+  setPromptText();
+  closeSheets();
+};
+$('scriptClear').onclick = () => { $('scriptInput').value = ''; };
 
-    const av = document.createElement('div');
-    av.className = 'item-avatar';
-    av.textContent = (s.name || '?').charAt(0).toUpperCase();
+$('speedBtn').onclick = () => openSheet('speedSheet');
+$('speedDone').onclick = () => closeSheets();
+$('speed').oninput = e => {
+  speedVal = Number(e.target.value);
+  $('speedNow').textContent = speedVal;
+  $('speedBig').textContent = speedVal;
+};
 
-    const info = document.createElement('div');
-    info.className = 'item-info';
-    const name = document.createElement('div');
-    name.className = 'item-name';
-    name.textContent = s.name;
-    if (s.id === activeId) {
-      const b = document.createElement('span');
-      b.className = 'badge';
-      b.textContent = 'On camera';
-      name.appendChild(b);
-    }
-    const sub = document.createElement('div');
-    sub.className = 'item-sub';
-    sub.textContent = s.text;
-    info.appendChild(name); info.appendChild(sub);
-
-    const edit = document.createElement('button');
-    edit.className = 'edit-btn';
-    edit.setAttribute('aria-label', 'Edit script');
-    edit.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
-    edit.onclick = e => { e.stopPropagation(); openEditor(s.id); };
-
-    row.appendChild(av); row.appendChild(info); row.appendChild(edit);
-    row.onclick = () => { activeId = s.id; store(KEY_ACTIVE, activeId); showScreen('record'); };
-    list.appendChild(row);
-  });
-}
-
-/* ---------- editor ---------- */
-function openEditor(id) {
-  editingId = id || null;
-  const s = scripts.find(x => x.id === id);
-  $('editTitle').textContent = s ? 'Edit script' : 'New script';
-  $('scriptName').value = s ? s.name : '';
-  $('scriptText').value = s ? s.text : '';
-  $('editDelete').style.display = s ? 'flex' : 'none';
-  showScreen('editor');
-}
-
-function saveEditor() {
-  const name = $('scriptName').value.trim() || 'Untitled';
-  const text = $('scriptText').value.trim();
-  if (!text) { $('scriptText').focus(); return; }
-  if (editingId) {
-    const s = scripts.find(x => x.id === editingId);
-    if (s) { s.name = name; s.text = text; }
-  } else {
-    const s = { id: String(Date.now()), name, text };
-    scripts.unshift(s);
-    if (!activeScript()) { activeId = s.id; store(KEY_ACTIVE, activeId); }
-  }
-  store(KEY_SCRIPTS, scripts);
-  showScreen('scripts');
-}
-
-function deleteEditor() {
-  if (!editingId || !confirm('Delete this script?')) return;
-  scripts = scripts.filter(s => s.id !== editingId);
-  store(KEY_SCRIPTS, scripts);
-  if (activeId === editingId) { activeId = null; store(KEY_ACTIVE, null); }
-  showScreen('scripts');
-}
-
-/* ---------- wiring ---------- */
+/* ---------- Controls ---------- */
 $('shutter').onclick = () => (recorder && recorder.state === 'recording') ? stopRec() : startRec();
 $('playBtn').onclick = () => promptRunning ? stopPrompt() : startPrompt();
 $('resetBtn').onclick = () => { stopPrompt(); resetPrompt(); };
-$('speedBtn').onclick = () => $('speedSheet').classList.add('open');
-$('speedDone').onclick = () => $('speedSheet').classList.remove('open');
-document.querySelectorAll('.speeds button').forEach(b => b.onclick = () => setSpeed(b.dataset.speed));
 $('saveBtn').onclick = saveVideo;
 $('retakeBtn').onclick = closeReview;
-$('newScript').onclick = () => openEditor(null);
-$('editBack').onclick = () => showScreen('scripts');
-$('editSave').onclick = saveEditor;
-$('editDelete').onclick = deleteEditor;
 
-setSpeed('medium');
-showScreen('record');
+// Tap the camera area to close any open sheet
+$('view').addEventListener('pointerdown', closeSheets);
+
+$('speed').value = speedVal;
+$('speedNow').textContent = speedVal;
+$('speedBig').textContent = speedVal;
+setPromptText();
+startCam();
 </script>
 </body>
 </html>
